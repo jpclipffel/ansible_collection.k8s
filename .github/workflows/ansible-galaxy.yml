@@ -1,0 +1,33 @@
+name: Build and publish collection
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+
+  build-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jpclipffel/docker-ansible
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Read collection version
+        id: version
+        run: |
+          echo "::set-output name=COLLECTION_VERSION::$(cat galaxy.yml | grep version: | tr -d 'version: ')"
+
+      - name: Build collection
+        # Use --force when running with act
+        run: |
+          ansible-galaxy collection build --force
+
+      - name: Publish collection
+        run: |
+          ansible-galaxy collection publish \
+            --api-key ${{ secrets.ANSIBLE_GALAXY_APIKEY }} \
+            --import-timeout 60 \
+            jpclipffel-k8s-${{ steps.version.outputs.COLLECTION_VERSION }}.tar.gz
