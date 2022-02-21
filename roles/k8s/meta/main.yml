@@ -1,3 +1,3 @@
 galaxy_info:
-  role_name: k8s_base
+  role_name: jpclipffel.k8s.k8s
   description: Ansible role to deploy, scale and manage a Kubernetes cluster.
