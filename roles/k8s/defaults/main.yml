@@ -2,7 +2,7 @@
 
 
 # Kubernetes packages
-jpclipffel_k8s_k8s_version: "1.20.1-00"
+jpclipffel_k8s_k8s_version: "1.23.4-00"
 jpclipffel_k8s_k8s_packages:
   - "kubeadm={{ jpclipffel_k8s_k8s_version }}"
   - "kubectl={{ jpclipffel_k8s_k8s_version }}"

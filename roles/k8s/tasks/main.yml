@@ -9,7 +9,7 @@
   ansible.builtin.include_tasks:
     file: teardown.yml
     apply: { tags: [ teardown ] }
-  tags: [never, teardown]
+  tags: [never, teardown, remove]
 
 
 # Remove Kubernetes
@@ -59,20 +59,23 @@
 #
 # Ensure that the latest version of the system's default kubeconfig is installed
 # and that the next tasks will run seamlessly.
-- block:
-    # ---
-    - name: Create kubeconfig root directory
-      file:
-        path: "{{ jpclipffel_k8s_k8s_kubeconfig | dirname }}"
-        state: directory
-    # ---
-    - name: Copy kubeconfig
-      copy:
-        remote_src: yes
-        src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
-        dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
-      failed_when: false
-    # ---
+
+- name: Create kubeconfig root directory
+  file:
+    path: "{{ jpclipffel_k8s_k8s_kubeconfig | dirname }}"
+    state: directory
+    mode: 0755
+  when:
+    - jpclipffel_k8s_k8s_node_type == "master"
+  tags: [never, setup]
+
+- name: Copy kubeconfig
+  copy:
+    remote_src: yes
+    src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
+    dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
+    mode: 0644
+  failed_when: false
   when:
     - jpclipffel_k8s_k8s_node_type == "master"
   tags: [never, setup]
@@ -95,7 +98,8 @@
   ansible.builtin.include_tasks:
     file: facts.yml
     apply: { tags: [ always, stats ] }
-  tags: [never, stats, setup, teardown, remove]
+  tags: [never, stats, setup]
+  # tags: [never, stats, setup, teardown, remove]
 
 
 # Print facts

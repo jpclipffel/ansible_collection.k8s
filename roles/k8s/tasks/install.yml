@@ -1,19 +1,28 @@
-# code: language=Ansible insertSpaces=true tabSize=2
+# vim: set ts=2 ft=Ansible
 
 
-# Kubernetes
-#
-# Install and start Kubernetes on every hosts.
-
-- include_tasks:
+- name: Include os-specific installation tasks
+  include_tasks:
     file: "install_{{ ansible_distribution|lower }}.yml"
 
+- name: Load required kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: [br_netfilter, ]
+
+- name: Setup system network
+  shell: |
+    echo 1 > {{ item }}
+  changed_when: true
+  loop:
+    - "/proc/sys/net/bridge/bridge-nf-call-iptables"
+    - "/proc/sys/net/ipv4/ip_forward"
 
 - name: Install Kubernetes
   package:
     name: "{{ jpclipffel_k8s_k8s_packages }}"
     state: present
-
 
 - name: Start kubelet
   service:
@@ -21,25 +30,20 @@
     state: started
     enabled: yes
 
+- name: Install Python PIP
+  package:
+    name: python3-pip
+    state: present
+  when:
+    - jpclipffel_k8s_k8s_node_type == "master"
 
-# Python
-#
-# Install PIP and Ansible dependencies to interact with Kubernetes on master nodes.
-- block:
-    # ---
-    - name: Install Python PIP
-      package:
-        name:
-          - python3-pip
-        state: present
-    # ---
-    - name: Install Kubernetes Python dependencies for Ansible
-      pip:
-        name:
-          - PyYAML
-          - openshift
-          - grpcio
-          - docker
-        state: present
+- name: Install Kubernetes Python dependencies for Ansible
+  pip:
+    name:
+      - PyYAML
+      - openshift
+      - grpcio
+      - docker
+    state: present
   when:
     - jpclipffel_k8s_k8s_node_type == "master"

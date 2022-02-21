@@ -7,17 +7,15 @@
 # Disable swap partition and usage.
 
 - name: Disable swap
-  shell: >
+  shell: |
     swapoff -a
-
+  changed_when: true
 
 - name: Unmount swap
   mount:
     name: swap
     fstype: swap
     state: absent
-
-
 
 
 # Primary master node selection
@@ -41,7 +39,6 @@
     - primary_master_name is not defined or primary_master_name | length < 1
   with_items: "{{ ansible_play_hosts }}"
 
-
 # Second attempt
 # Try to choose a primary master node among nodes wich are of type 'master'
 - name: Select primary master node
@@ -56,7 +53,6 @@
     - primary_master_name is not defined or primary_master_name | length < 1
   with_items: "{{ ansible_play_hosts }}"
 
-
 # Assert that a primary master node has been choosen
 - name: Check if a primary node has been selected
   assert:
@@ -64,8 +60,6 @@
       - primary_master_name is defined and primary_master_name | length > 0
     fail_msg: "No primary master node selected"
     success_msg: "Selected primary master node '{{ primary_master_name }} @ {{ primary_master_ip }}: {{ selection_msg }}"
-
-
 
 
 # Hosts file tampering
@@ -80,8 +74,6 @@
     state: present
   when:
     - not jpclipffel_k8s_k8s_kubelet_healthy or (jpclipffel_k8s_k8s_node_type == 'master' and not jpclipffel_k8s_k8s_cluster_running) or 'force' in ansible_run_tags
-
-
 
 
 # Cluster initialization
@@ -128,12 +120,11 @@
         remote_src: yes
         src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
         dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
+        mode: 0644
 
   when:
     - inventory_hostname == primary_master_name
     - not jpclipffel_k8s_k8s_cluster_running 
-
-
 
 
 # Access token generation
@@ -143,8 +134,8 @@
 - block:
 
     - name: Generate temporary certificate key
-      shell: >
-        kubeadm alpha certs certificate-key
+      shell: |
+        kubeadm {{ jpclipffel_k8s_k8s_version is version('1.20', '<') and 'alpha' or '' }} certs certificate-key
       register: jpclipffel_k8s_k8s_certificate_key
 
     - name: Upload cluster certificates
@@ -162,8 +153,6 @@
 
   when:
     - inventory_hostname == primary_master_name
-
-
 
 
 # Master nodes joining
@@ -200,6 +189,7 @@
         remote_src: yes
         src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
         dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
+        mode: 0644
 
   when:
     - jpclipffel_k8s_k8s_node_type == "master"
@@ -207,8 +197,6 @@
     - not jpclipffel_k8s_k8s_kubelet_healthy or not jpclipffel_k8s_k8s_cluster_running or 'force' in ansible_run_tags
     # - not jpclipffel_k8s_k8s_kubelet_healthy or 'force' in ansible_run_tags
     # - not jpclipffel_k8s_k8s_cluster_running or 'force' in ansible_run_tags
-
-
 
 
 # Worker nodes joining
@@ -231,8 +219,6 @@
   when:
     - jpclipffel_k8s_k8s_node_type == "worker"
     - not jpclipffel_k8s_k8s_kubelet_healthy or 'force' in ansible_run_tags
-
-
 
 
 # Hosts file reset
