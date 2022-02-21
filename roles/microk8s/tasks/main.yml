@@ -1,0 +1,53 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Install Snapd
+  ansible.builtin.package:
+    name: "snapd"
+    state: present
+  tags: [never, setup]
+
+
+- name: Configure Snapd
+  ansible.builtin.systemd:
+    name: "snapd.socket"
+    enabled: true
+    state: restared
+  when:
+    - ansible_system | lower == "linux"
+    - ansible_distribution | lower not in ["ubuntu"]
+  tags: [never, setup]
+
+# ---
+
+- name: Get microk8s status # noqa risky-shell-pipe
+  ansible.builtin.shell: |
+    snap list | grep microk8s | awk '{print $4}'
+  register: _gms
+  changed_when: no
+  tags: [never, setup]
+
+
+- name: Control MicroK8s version
+  ansible.builtin.fail:
+    msg: "Requested MicroK8s version ({{ jpclipffel_k8s_microk8s_channel }}) does not match installed version ({{ _gms.stdout }})"
+  when:
+    - jpclipffel_k8s_microk8s_channel != _gms.stdout
+  tags: [never, setup]
+
+
+- name: Install MicroK8s
+  community.general.snap:
+    name: "microk8s"
+    channel: "{{ jpclipffel_k8s_microk8s_channel }}"
+    classic: yes
+    state: present
+  tags: [never, setup]
+
+# ---
+
+- name: Uninstall MicroK8s
+  community.general.snap:
+    name: "microk8s"
+    state: absent
+  tags: [never, teardown, remove]

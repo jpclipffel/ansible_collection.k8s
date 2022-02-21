@@ -1,0 +1,6 @@
+# vim: set ft=Ansible ts=2
+
+
+jpclipffel_k8s_microk8s_channel_track: "latest"
+jpclipffel_k8s_microk8s_channel_risk: "stable"
+jpclipffel_k8s_microk8s_channel: "{{ jpclipffel_k8s_microk8s_channel_track }}/{{ jpclipffel_k8s_microk8s_channel_risk }}"

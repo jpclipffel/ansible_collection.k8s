@@ -1,0 +1,64 @@
+# vim: set ft=Ansible ts=2
+
+# Host group and node type resolution
+#
+# We support two methods to categorize nodes (masters or workers):
+# Using host groups: 'k8s_masters', 'k8s_workers', 'k8s_deleted'
+# Using variables 'jpclipffel_k8s_k8s_node_type': 'master', 'worker', 'deleted'
+
+
+- name: Resolve masters group from node type
+  add_host:
+    hostname: "{{ item }}"
+    groups: "k8s_masters"
+  when:
+    - hostvars[item]
+    - hostvars[item].jpclipffel_k8s_k8s_node_type is defined and hostvars[item].jpclipffel_k8s_k8s_node_type == 'master'
+  with_items: "{{ ansible_play_hosts }}"
+
+
+- name: Resolve workers group from node type
+  add_host:
+    hostname: "{{ item }}"
+    groups: "k8s_workers"
+  when:
+    - hostvars[item]
+    - hostvars[item].jpclipffel_k8s_k8s_node_type is defined and hostvars[item].jpclipffel_k8s_k8s_node_type == 'worker'
+  with_items: "{{ ansible_play_hosts }}"
+
+
+- name: Resolve deleted group from node type
+  add_host:
+    hostname: "{{ item }}"
+    groups: "deleted"
+  when:
+    - hostvars[item]
+    - hostvars[item].jpclipffel_k8s_k8s_node_type is defined and hostvars[item].jpclipffel_k8s_k8s_node_type == 'delete'
+  with_items: "{{ ansible_play_hosts }}"
+
+
+- name: Resolve node type from host group
+  set_fact:
+    jpclipffel_k8s_k8s_node_type: "{{ item.type }}"
+  when:
+    - jpclipffel_k8s_k8s_node_type is not defined
+    - item.group in group_names
+  with_items:
+    # Master groups
+    - { "group": "k8s_masters", "type": "master" }
+    # Workers groups
+    - { "group": "k8s_workers", "type": "worker" }
+    # Deleted group
+    - { "group": "k8s_deleted", "type": "delete" }
+
+
+- name: Select primary master node
+  set_fact:
+    jpclipffel_k8s_k8s_primary_master_name: "{{ item }}"
+    jpclipffel_k8s_k8s_primary_master_ip: "{{ hostvars[item].ansible_default_ipv4.address }}"
+  delegate_to: localhost
+  run_once: yes
+  when:
+    - hostvars[item].jpclipffel_k8s_k8s_node_type | default('') == "master"
+    - jpclipffel_k8s_k8s_primary_master_name is not defined or jpclipffel_k8s_k8s_primary_master_name | length < 1
+  with_items: "{{ ansible_play_hosts }}"

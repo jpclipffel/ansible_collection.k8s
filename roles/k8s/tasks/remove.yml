@@ -1,0 +1,7 @@
+# code: language=Ansible insertSpaces=true tabSize=2
+
+
+- name: Uninstall Kubernetes
+  package:
+    name: "{{ jpclipffel_k8s_k8s_packages }}"
+    state: absent

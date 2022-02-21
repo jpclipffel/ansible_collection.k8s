@@ -1,0 +1,96 @@
+# code: language="jinja-yaml" insertSpaces=true tabSize=2
+
+
+- block:
+    # ---
+    - name: Check kubeadm version
+      shell: >
+        kubeadm version -o yaml 2>/dev/null || echo '{}'
+      register: _jpclipffel_k8s_k8s_kubeadm_version
+    # ---
+    - name: Set kubeadm version
+      set_fact:
+        jpclipffel_k8s_k8s_kubeadm_version: "{{ _jpclipffel_k8s_k8s_kubeadm_version.stdout | from_yaml }}"
+    # ---
+    - name: Set kubeadm version major and minor
+      set_fact:
+        jpclipffel_k8s_k8s_kubeadm_version_major: "{{ jpclipffel_k8s_k8s_kubeadm_version.clientVersion.major | default(0) | int }}"
+        jpclipffel_k8s_k8s_kubeadm_version_minor: "{{ jpclipffel_k8s_k8s_kubeadm_version.clientVersion.minor | default(0) | int }}"
+
+
+- block:
+    # ---
+    - name: Check node service status
+      service_facts:
+    # ---
+    - name: Set node service status
+      set_fact:
+        jpclipffel_k8s_k8s_kubelet_running: "{{ ansible_facts.services['kubelet.service'].state | default ('unknown') == 'running' }}"
+
+
+- block:
+    # ---
+    - name: Check kubelet health
+      uri:
+        url: "{{ jpclipffel_k8s_k8s_health_url }}"
+        return_content: yes
+        timeout: 2
+      failed_when: false
+      register: _healtz_text
+    # ---
+    - name: Set kubelet health
+      set_fact:
+        jpclipffel_k8s_k8s_kubelet_healthy: "{{ _healtz_text.content | default('-') == 'ok' }}"
+    # ---
+
+
+- name: Check if any node is unconfigured or unhealthy
+  set_fact:
+    play_has_unconfigured_nodes: yes
+  delegate_to: localhost
+  run_once: yes
+  when:
+    - not hostvars[item].jpclipffel_k8s_k8s_kubelet_healthy
+  with_items: "{{ ansible_play_hosts }}"
+
+
+- block:
+    # ---
+    - name: Check cluster status
+      shell: >
+        kubectl cluster-info
+      environment:
+        KUBECONFIG: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
+      register: _kubectl_cs_code
+      failed_when: false
+      changed_when: false
+      when:
+        - jpclipffel_k8s_k8s_node_type == "master"
+    # ---
+    - name: Set cluster status
+      set_fact:
+        jpclipffel_k8s_k8s_cluster_running: "{{ _kubectl_cs_code.rc | default('1') == 0 }}"
+
+
+# - name: Set stats (play level)
+#   set_stats:
+#     per_host: no
+#     data:
+#       play_has_unconfigured_nodes: "{{ play_has_unconfigured_nodes | default(false) }}"
+#   delegate_to: localhost
+#   run_once: yes
+
+
+- name: Set stats
+  set_stats:
+    per_host: yes
+    aggregate: yes
+    data:
+      # jpclipffel_k8s_k8s_helm_exists: "{{ jpclipffel_k8s_k8s_helm_exists | default(false) }}"
+      jpclipffel_k8s_k8s_kubelet_running: "{{ jpclipffel_k8s_k8s_kubelet_running | default(false) }}"
+      jpclipffel_k8s_k8s_kubelet_healthy: "{{ jpclipffel_k8s_k8s_kubelet_healthy | default(false) }}"
+      jpclipffel_k8s_k8s_cluster_running: "{{ jpclipffel_k8s_k8s_cluster_running | default(false) }}"
+      jpclipffel_k8s_k8s_kubeadm_version_major: "{{ jpclipffel_k8s_k8s_kubeadm_version_major | default(0) }}"
+      jpclipffel_k8s_k8s_kubeadm_version_minor: "{{ jpclipffel_k8s_k8s_kubeadm_version_minor | default(0) }}"
+  # delegate_to: localhost
+  # run_once: yes

@@ -1,0 +1,87 @@
+# code: language=Ansible insertSpaces=true tabSize=2
+
+
+- name: Assertions
+  assert:
+    that:
+      - jpclipffel_k8s_k8s_primary_master_name is defined
+  tags: [never, apply, delete]
+
+- name: Check if host uses NetworkManager
+  stat:
+    path: "{{ jpclipffel_k8s_calico_netmgr_path }}"
+  register: _netmgr
+  tags: [never, apply, delete]
+
+- name: Create NetworkManager configuration directory
+  file:
+    path: "{{ jpclipffel_k8s_calico_netmgr_path }}/conf.d/"
+    state: directory
+    mode: 0755
+  when:
+    - _netmgr.stat.isdir is defined and _netmgr.stat.isdir
+  tags: [never, apply]
+
+- name: Template Calico configuration for NetworkManager
+  template:
+    src: calico.conf.j2
+    dest: "{{ jpclipffel_k8s_calico_netmgr_path }}/conf.d/calico.conf"
+    mode: 0644
+  when:
+    - _netmgr.stat.isdir is defined and _netmgr.stat.isdir
+  tags: [never, apply]
+
+- name: Apply Calico
+  k8s:
+    definition: "{{ lookup('url', jpclipffel_k8s_calico_manifest_url, split_lines=False) }}"
+    state: present
+    apply: yes
+    force: yes
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8s_primary_master_name
+  tags: [never, apply]
+
+# ---
+
+- name: Delete Calico # noqa ignore-errors
+  k8s:
+    definition: "{{ lookup('url', jpclipffel_k8s_calico_manifest_url, split_lines=False) }}"
+    state: absent
+  ignore_errors: yes
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8s_primary_master_name
+  tags: [never, delete]
+
+- name: Remove Calico configuration for NetworkManager
+  file:
+    path: "{{ jpclipffel_k8s_calico_netmgr_path }}/conf.d/calico.conf"
+    state: absent
+  when:
+    - _netmgr.stat.isdir is defined and _netmgr.stat.isdir
+  tags: [never, delete]
+
+- name: Collect host ip links
+  shell: >
+    ip -json link
+  changed_when: false
+  register: _host_links
+  tags: [never, delete]
+
+- name: Delete remanent Calico links
+  shell: |
+    ifconfig down "{{ item.ifname }}"
+    ip link delete "{{ item.ifname }}"
+  when:
+    - item.ifname is match("^(br\-|cali)([0-9a-z])+")
+  with_items: "{{ _host_links.stdout | from_json }}"
+  tags: [never, delete]
+
+- name: Delete remanent Calico configuration files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/etc/cni/net.d/10-calico.conflist"
+    - "/etc/cni/net.d/calico-kubeconfig"
+    - "/var/lib/cni"
+  tags: [never, delete]

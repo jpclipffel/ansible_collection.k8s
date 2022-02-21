@@ -1,0 +1,15 @@
+# code: language=Ansible insertSpaces=true tabSize=2
+
+- assert:
+    that: "{{ item }} is defined and {{ item }} | length > 0"
+    fail_msg: "Undefined or empty variable '{{ item }}'"
+  with_items:
+    - jpclipffel_k8s_k8s_node_type
+    - jpclipffel_k8s_k8s_control_plane_endpoint
+
+
+- name: Check node type
+  assert:
+    that:
+      - jpclipffel_k8s_k8s_node_type in [ "master", "worker" ]
+    fail_msg: "Incorrect node type ('jpclipffel_k8s_k8s_node_type'): got '{{ jpclipffel_k8s_k8s_node_type }}', expected either 'master' or 'worker'"
