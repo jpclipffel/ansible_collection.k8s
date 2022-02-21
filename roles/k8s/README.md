@@ -1,4 +1,4 @@
-# Ansible role - `k8s_base`
+# Ansible Role - jpclipffel.k8s.k8s
 
 Ansible role to deploy, scale and manage a Kubernetes cluster.
 
