@@ -21,8 +21,10 @@
 # ---
 
 - name: Get microk8s status # noqa risky-shell-pipe
-  ansible.builtin.shell: |
-    snap list | grep microk8s | awk '{print $4}'
+  ansible.builtin.shell: >
+    snap list 2&>/dev/null
+    | grep microk8s
+    | awk '{print $4}'
   register: _gms
   changed_when: no
   tags: [never, setup]
@@ -32,6 +34,7 @@
   ansible.builtin.fail:
     msg: "Requested MicroK8s version ({{ jpclipffel_k8s_microk8s_channel }}) does not match installed version ({{ _gms.stdout }})"
   when:
+    - _gms.stdout | length > 0
     - jpclipffel_k8s_microk8s_channel != _gms.stdout
   tags: [never, setup]
 
