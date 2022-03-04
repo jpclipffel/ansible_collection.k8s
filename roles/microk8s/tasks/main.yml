@@ -49,6 +49,28 @@
 
 # ---
 
+- name: Enabling MicroK8s addons
+  ansible.builtin.shell: |
+    microk8s enable {{ __dmk8sa_item }}
+  loop: "{{ jpclipffel_k8s_microk8s_addons }}"
+  loop_control:
+    loop_var: __dmk8sa_item
+  changed_when: true
+  tags: [never, apply]
+
+# ---
+
+- name: Disable MicroK8s addons
+  ansible.builtin.shell: |
+    microk8s disable {{ __dmk8sa_item }}
+  loop: "{{ jpclipffel_k8s_microk8s_addons }}"
+  loop_control:
+    loop_var: __dmk8sa_item
+  changed_when: true
+  tags: [never, delete]
+
+# ---
+
 - name: Uninstall MicroK8s
   community.general.snap:
     name: "microk8s"
