@@ -1,16 +1,17 @@
 # Ansible Collection - jpclipffel.k8s
 
-This deploys, maintains and manages K8S clusters.
-Various K8S deployemtn are supported.
+This collection deploys, maintains and manages K8S clusters.
 
 ## Roles
 
 ### `microk8s`
-Deploys and maintains a MicroK8s cluster (or single node).
+Deploys and maintains a MicroK8s node.
 
 | Tags       | Description                        |
 |------------|------------------------------------|
 | `setup`    | Deploy a MicroK8s cluster          |
+| `apply`    | Enable MicroK8s addons             |
+| `delete`   | Disable MicroK8s addons            |
 | `teardown` | Stop a MicroK8s cluster            |
 | `remove`   | Stop and remove a MicroK8s cluster |
 
