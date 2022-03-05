@@ -2,6 +2,6 @@
 
 
 - name: Uninstall Kubernetes
-  package:
+  ansible.builtin.package:
     name: "{{ jpclipffel_k8s_k8s_packages }}"
     state: absent

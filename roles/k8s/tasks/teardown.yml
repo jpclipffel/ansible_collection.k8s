@@ -1,41 +1,52 @@
 # code: language=Ansible insertSpaces=true tabSize=2
 
 
-- name: Stop and disable kubelet
-  service:
+- name: Stop and disable kubelet # noqa ignore-errors
+  ansible.builtin.service:
     name: kubelet
     state: stopped
     enabled: no
   ignore_errors: yes
 
 
-- name: Stop remaining services
-  shell: >
-    pkill -f kube-controller-manager
+- name: Stop remaining services # noqa ignore-errors
+  ansible.builtin.shell: >
+    pkill -f {{ __srs_item }}
+  loop:
+    - kube-controller-manager
+    - kube-proxy
+    - kube-scheduler
+    - kubelet
+    - etcd
+  loop_control:
+    loop_var: __srs_item
+  changed_when: true
   ignore_errors: yes
 
 
-- name: Revert Kubernetes configuration
-  shell: >
+- name: Revert Kubernetes configuration # noqa ignore-errors
+  ansible.builtin.shell: >
     kubeadm reset -f
+  changed_when: true
   ignore_errors: yes
 
 
-- name: Remove kubeconfig
+- name: Remove kubeconfig # noqa ignore-errors
   file:
     path: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
     state: absent
   ignore_errors: yes
 
 
-- name: Purge IPTables rules
-  shell: >
+- name: Purge IPTables rules # noqa ignore-errors
+  ansible.builtin.shell: |
     iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+  changed_when: true
   ignore_errors: yes
 
 
 - name: Cleanup tampered hosts file
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^.*{{ jpclipffel_k8s_k8s_control_plane_endpoint }}'
     state: absent

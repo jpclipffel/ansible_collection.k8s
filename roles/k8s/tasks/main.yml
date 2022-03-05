@@ -8,7 +8,7 @@
 - name: Reset Kubernetes
   ansible.builtin.include_tasks:
     file: teardown.yml
-    apply: { tags: [ teardown ] }
+    apply: { tags: [teardown, remove] }
   tags: [never, teardown, remove]
 
 
@@ -19,7 +19,7 @@
 - name: Remove Kubernetes
   ansible.builtin.include_tasks:
     file: remove.yml
-    apply: { tags: [ remove ] }
+    apply: { tags: [remove] }
   tags: [never, remove]
 
 
@@ -30,7 +30,7 @@
 - name: Assertions
   ansible.builtin.include_tasks:
     file: assert.yml
-    apply: { tags: [ setup ] }
+    apply: { tags: [setup] }
   tags: [never, setup]
 
 
@@ -40,7 +40,7 @@
 - name: Preflight facts collection
   ansible.builtin.include_tasks:
     file: facts.yml
-    apply: { tags: [ setup ] }
+    apply: { tags: [setup] }
   tags: [never, setup]
 
 
@@ -51,7 +51,7 @@
 - name: Installation
   ansible.builtin.include_tasks:
     file: install.yml
-    apply: { tags: [ setup ] }
+    apply: { tags: [setup] }
   tags: [never, setup]
 
 
@@ -61,7 +61,7 @@
 # and that the next tasks will run seamlessly.
 
 - name: Create kubeconfig root directory
-  file:
+  ansible.builtin.file:
     path: "{{ jpclipffel_k8s_k8s_kubeconfig | dirname }}"
     state: directory
     mode: 0755
@@ -70,7 +70,7 @@
   tags: [never, setup]
 
 - name: Copy kubeconfig
-  copy:
+  ansible.builtin.copy:
     remote_src: yes
     src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
     dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
@@ -87,7 +87,7 @@
 - name: Cluster setup
   ansible.builtin.include_tasks:
     file: cluster.yml
-    apply: { tags: [ setup ] }
+    apply: { tags: [setup] }
   tags: [never, setup]
 
 
@@ -97,14 +97,14 @@
 - name: Postflight facts collection
   ansible.builtin.include_tasks:
     file: facts.yml
-    apply: { tags: [ always, stats ] }
+    apply: { tags: [always, stats] }
   tags: [never, stats, setup]
   # tags: [never, stats, setup, teardown, remove]
 
 
 # Print facts
 - name: Print facts
-  debug:
+  ansible.builtin.debug:
     var: "{{ item }}"
   with_items:
     - jpclipffel_k8s_k8s_helm_exists
@@ -123,5 +123,5 @@
 - name: Scanning inventory
   ansible.builtin.include_tasks:
     file: inventory_helper.yml
-    apply: { tags: [ apply ] }
+    apply: { tags: [apply] }
   tags: [never, apply]
