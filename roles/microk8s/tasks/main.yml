@@ -47,6 +47,17 @@
     state: present
   tags: [never, setup]
 
+- name: Setup MicroK8s DNS names
+  ansible.builtin.lineinfile:
+    path: "{{ jpclipffel_k8s_microk8s_dnsnames_path }}"
+    line: "{{ __smdn.entry }} = {{ __smdn.host }}"
+    insertafter: "^#MOREIPS$"
+  with_items: "{{ jpclipffel_k8s_microk8s_dnsnames }}"
+  loop_control:
+    loop_var: __smdn
+  changed_when: true
+  tags: [never, setup]
+
 # ---
 
 - name: Enabling MicroK8s addons
