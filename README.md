@@ -91,24 +91,10 @@ ansible-playbook -i <your-inventory> <your-playbook.yml> --tags 'tag,tag,...'
 * Deploys and maintains a MicroK8s node
 * See [the role documentation](roles/microk8s/README.md)
 
-| Tags       | Description                        |
-|------------|------------------------------------|
-| `setup`    | Deploy a MicroK8s cluster          |
-| `apply`    | Enable MicroK8s addons             |
-| `delete`   | Disable MicroK8s addons            |
-| `teardown` | Stop a MicroK8s cluster            |
-| `remove`   | Stop and remove a MicroK8s cluster |
-
 ### `k8s`
 
 * Deploys and maintains a vanilla K8S cluster
 * See [the role documentation](roles/k8s/README.md)
-
-| Tags       | Description                           |
-|------------|---------------------------------------|
-| `setup`    | Deploy a vanilla K8S cluster          |
-| `teardown` | Stop a vanilla K8S cluster            |
-| `remove`   | Stop and remove a vanilla K8S cluster |
 
 ### `metallb`
 
