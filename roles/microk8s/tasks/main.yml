@@ -47,6 +47,7 @@
     state: present
   tags: [never, setup]
 
+
 - name: Setup MicroK8s DNS names
   ansible.builtin.lineinfile:
     path: "{{ jpclipffel_k8s_microk8s_dnsnames_path }}"
@@ -58,7 +59,6 @@
   changed_when: true
   tags: [never, setup]
 
-# ---
 
 - name: Enabling MicroK8s addons
   ansible.builtin.shell: |
@@ -68,6 +68,28 @@
     loop_var: __dmk8sa_item
   changed_when: true
   tags: [never, apply]
+
+
+- name: Collect MicroK8s kubeconfig
+  ansible.builtin.shell: |
+    microk8s config
+  changed_when: false
+  register: "__kubeconfig"
+  tags: [never, facts, stats, setup, apply]
+
+
+- name: Set facts
+  ansible.builtin.set_fact:
+    kubeconfig: "{{ __kubeconfig.stdout }}"
+  tags: [never, facts, stats, setup, apply]
+
+
+- name: Set stats
+  ansible.builtin.set_stats:
+    data:
+      kubeconfig: "{{ __kubeconfig.stdout }}"
+  tags: [never, facts, stats, setup, apply]
+
 
 # ---
 

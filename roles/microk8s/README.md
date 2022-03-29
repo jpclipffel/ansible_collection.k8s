@@ -74,6 +74,8 @@ The complete list of variables is defined in the role [`defaults/mains.yml`](./d
 |------------|------------------------------------|
 | `setup`    | Deploy a MicroK8s cluster          |
 | `apply`    | Enable MicroK8s addons             |
+| `stats`    | Retrieve and set cluster info      |
+| `facts`    | Retrieve and set cluster info      |
 | `delete`   | Disable MicroK8s addons            |
 | `teardown` | Stop a MicroK8s cluster            |
 | `remove`   | Stop and remove a MicroK8s cluster |
