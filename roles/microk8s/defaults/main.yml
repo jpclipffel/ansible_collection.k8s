@@ -13,9 +13,13 @@ jpclipffel_k8s_microk8s_channel: "{{ jpclipffel_k8s_microk8s_channel_track }}/{{
 # MicroK8s installation path
 jpclipffel_k8s_microk8s_root: "/var/snap/microk8s/current"
 
+# MicroK8s CIDR
+jpclipffel_k8s_microk8s_cidr: "10.16.0.0/16"
+
 # MicroK8s addons
 jpclipffel_k8s_microk8s_addons:
   - "dns"
+  - "rbac"
 
 # MicroK8s additional DNS names
 # 'jpclipffel_k8s_microk8s_dnsnames' is a list of map as:

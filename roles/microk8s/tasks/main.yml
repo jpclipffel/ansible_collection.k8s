@@ -1,6 +1,10 @@
 # vim: set ft=Ansible ts=2
 
 
+# ================
+# Pre-installation
+# ================
+
 - name: Install Snapd
   ansible.builtin.package:
     name: "snapd"
@@ -18,7 +22,10 @@
     - ansible_distribution | lower not in ["ubuntu"]
   tags: [never, setup]
 
-# ---
+
+# ============
+# Installation
+# ============
 
 - name: Get microk8s status # noqa risky-shell-pipe
   ansible.builtin.shell: >
@@ -26,7 +33,7 @@
     | grep microk8s
     | awk '{print $4}'
   register: _gms
-  changed_when: no
+  changed_when: false
   tags: [never, setup]
 
 
@@ -43,7 +50,7 @@
   community.general.snap:
     name: "microk8s"
     channel: "{{ jpclipffel_k8s_microk8s_channel }}"
-    classic: yes
+    classic: true
     state: present
   tags: [never, setup]
 
@@ -56,9 +63,64 @@
   with_items: "{{ jpclipffel_k8s_microk8s_dnsnames }}"
   loop_control:
     loop_var: __smdn
+  register: __dns
+  tags: [never, setup]
+
+
+- name: Setup MicroK8s CNI
+  ansible.builtin.replace:
+    path: "/var/snap/microk8s/current/args/cni-network/cni.yaml"
+    regexp: '( *- name: CALICO_IPV4POOL_CIDR\n)( *value: )(\".*\")'
+    replace: "\\1\\2\"{{ jpclipffel_k8s_microk8s_cidr }}\""
+  register: __cni
+  tags: [never, setup]
+
+
+- name: Reset MicroK8s CNI # noqa no-handler
+  ansible.builtin.shell: |
+    microk8s kubectl delete -f /var/snap/microk8s/current/args/cni-network/cni.yaml
+  when:
+    - __cni.changed
+  failed_when: false
   changed_when: true
   tags: [never, setup]
 
+
+- name: Setup MicroK8s CIDR
+  ansible.builtin.replace:
+    path: "/var/snap/microk8s/current/args/kube-proxy"
+    regexp: "--cluster-cidr=.*"
+    replace: "--cluster-cidr={{ jpclipffel_k8s_microk8s_cidr }}"
+  register: __cidr
+  tags: [never, setup]
+
+
+- name: Apply MicroK8s CNI # noqa no-handler
+  ansible.builtin.shell: |
+    microk8s kubectl apply -f /var/snap/microk8s/current/args/cni-network/cni.yaml
+  register: _amc
+  until: "_amc is not failed"
+  retries: 5
+  delay: 5
+  changed_when: true
+  when:
+    - __cni.changed or __cidr.changed
+  tags: [never, setup]
+
+
+- name: Restart MicroK8s # noqa no-handler
+  ansible.builtin.shell: |
+    microk8s stop;
+    microk8s start
+  when:
+    - __dns.changed or __cni.changed or __cidr.changed or 'restart' in ansible_run_tags
+  changed_when: true
+  tags: [never, setup]
+
+
+# ==================
+# Live configuration
+# ==================
 
 - name: Enabling MicroK8s addons
   ansible.builtin.shell: |
@@ -69,6 +131,20 @@
   changed_when: true
   tags: [never, apply]
 
+
+- name: Disable MicroK8s addons
+  ansible.builtin.shell: |
+    microk8s disable {{ __dmk8sa_item }}
+  loop: "{{ jpclipffel_k8s_microk8s_addons }}"
+  loop_control:
+    loop_var: __dmk8sa_item
+  changed_when: true
+  tags: [never, delete]
+
+
+# ==============
+# Data gathering
+# ==============
 
 - name: Collect MicroK8s kubeconfig
   ansible.builtin.shell: |
@@ -91,18 +167,9 @@
   tags: [never, facts, stats, setup, apply]
 
 
-# ---
-
-- name: Disable MicroK8s addons
-  ansible.builtin.shell: |
-    microk8s disable {{ __dmk8sa_item }}
-  loop: "{{ jpclipffel_k8s_microk8s_addons }}"
-  loop_control:
-    loop_var: __dmk8sa_item
-  changed_when: true
-  tags: [never, delete]
-
-# ---
+# ==============
+# Uninstallation
+# ==============
 
 - name: Uninstall MicroK8s
   community.general.snap:

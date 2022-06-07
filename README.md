@@ -1,3 +1,5 @@
+<!-- vim: set ft=Markdown ts=4 -->
+
 # Ansible Collection - jpclipffel.k8s
 
 This collection deploys, maintains and manages K8S clusters.
@@ -6,9 +8,9 @@ This collection deploys, maintains and manages K8S clusters.
 
 ### Requirements
 
-The cluster host(s) must have a compatible CRI installed (_Containerd_, _Podman_, etc.).
-The collection [`jpclipffel.container`][jpclipffel.container]
-can be used to install and setup a CRI.
+* The cluster host(s) must have a compatible CRI installed (_Containerd_, _Podman_, etc.)
+  * The collection [`jpclipffel.container`][jpclipffel.container]
+    can be used to install and setup a CRI
 
 ### Inventory setup
 
@@ -18,12 +20,15 @@ Create an inventory which include the host(s) to use as K8S cluster node(s):
 all:
   children:
 
-    # For MicroK8s single-node cluster:
+    # For MicroK8s cluster:
     microk8s:
+      vars:
+        # Optional: MicroK8s configuration variables
+        # jpclipffel_k8s_microk8s_*: ...
       hosts:
-        microk8s.tld:
-          # Optional: MicroK8s configuration variables
-          # jpclipffel_k8s_microk8s_*: ...
+        microk8s-01.tld:
+        microk8s-02.tld:
+        # ...
 
     # For vanilla (kubeadm) cluster:
     k8s:
@@ -35,12 +40,12 @@ all:
           hosts:
             master-01.tld:
             master-02.tld:
-            master-03.tld:
+            # ...
         k8s_workers:
           hosts:
             worker-01.tld:
             worker-02.tld:
-            worker-03.tld:
+            # ...
 ```
 
 Clusters setup is done using the following roles and collections:
@@ -56,10 +61,16 @@ Clusters setup is done using the following roles and collections:
 Create an Ansible playbook:
 
 ```yaml
-# For MicroK8s single-node cluster:
+# For MicroK8s cluster:
 - hosts: microk8s
+  vars:
+    jpclipffel_container_containerd_configonly: true
+    jpclipffel_container_containerd_root_path: "/var/snap/microk8s/current/args"
+    jpclipffel_container_containerd_config_path: "{{ jpclipffel_container_containerd_root_path }}/containerd-template.toml"
   roles:
     - jpclipffel.k8s.microk8s           # Setup the single-node cluster
+    - jpclipffel.container.containerd   # Setup MicroK8s CRI (Containerd)
+
 
 # For vanilla (kubeadm) cluster:
 - hosts: k8s
@@ -71,7 +82,7 @@ Create an Ansible playbook:
 
 ### Deploy
 
-Ensure the collections are installed:
+Ensure the required collections are installed:
 
 ```shell
 $> ansible-galaxy collection install jpclipffel.k8s
