@@ -23,6 +23,46 @@
   tags: [never, setup]
 
 
+- name: Configure ansible_hostname resolution
+  ansible.builtin.lineinfile:
+    path: "/etc/hosts"
+    regexp: '{{ hostvars[__host].ansible_default_ipv4.address }}\s+{{ hostvars[__host].ansible_hostname }}'
+    line: '{{ hostvars[__host].ansible_default_ipv4.address }} {{ hostvars[__host].ansible_hostname }}'
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: __host
+  tags: [never, setup]
+
+
+# - name: Ensure host resolve itself
+#   block:
+
+#     - name: Get host hostname
+#       ansible.builtin.shell: >
+#         hostname
+#       changed_when: false
+#       register: __host_hostname
+
+#     - name: Setup host self-resolution
+#       ansible.builtin.lineinfile:
+#         path: "/etc/hosts"
+#         regexp: '{{  __host.address }}\s+{{ __host.name }}'
+#         line: "{{  __host.address }} {{ __host.name }}"
+#       loop:
+#         - address: "127.0.0.1"
+#           name: "{{ __host_hostname.stdout }}"
+#         - address: "127.0.0.1"
+#           name: "{{ ansible_hostname }}"
+#         - address: "{{ ansible_default_ipv4.address }}"
+#           name: "{{ __host_hostname.stdout }}"
+#         - address: "{{ ansible_default_ipv4.address }}"
+#           name: "{{ ansible_hostname }}"
+#       loop_control:
+#         loop_var: __host
+
+#   tags: [never, setup]
+
+
 # ============
 # Installation
 # ============
@@ -55,21 +95,38 @@
   tags: [never, setup]
 
 
+- name: Wait for MicroK8s to be ready # noqa command-instead-of-shell
+  ansible.builtin.shell:
+    microk8s status --wait-ready
+  changed_when: false
+  tags: [never, setup]
+
+
 - name: Setup MicroK8s DNS names
   ansible.builtin.lineinfile:
     path: "{{ jpclipffel_k8s_microk8s_dnsnames_path }}"
     line: "{{ __smdn.entry }} = {{ __smdn.host }}"
     insertafter: "^#MOREIPS$"
-  with_items: "{{ jpclipffel_k8s_microk8s_dnsnames }}"
+  with_items: "{{ jpclipffel_k8s_microk8s_dnsnames | reverse }}"
   loop_control:
     loop_var: __smdn
   register: __dns
   tags: [never, setup]
 
 
+- name: Copy current MicroK8s CNI
+  ansible.builtin.copy:
+    remote_src: true
+    mode: preserve
+    src: "{{ jpclipffel_k8s_microk8s_root }}/args/cni-network/cni.yaml"
+    dest: "{{ jpclipffel_k8s_microk8s_root }}/args/cni-network/cni-default.yaml"
+  changed_when: false
+  tags: [never, setup]
+
+
 - name: Setup MicroK8s CNI
   ansible.builtin.replace:
-    path: "/var/snap/microk8s/current/args/cni-network/cni.yaml"
+    path: "{{ jpclipffel_k8s_microk8s_root }}/args/cni-network/cni.yaml"
     regexp: '( *- name: CALICO_IPV4POOL_CIDR\n)( *value: )(\".*\")'
     replace: "\\1\\2\"{{ jpclipffel_k8s_microk8s_cidr }}\""
   register: __cni
@@ -78,7 +135,7 @@
 
 - name: Reset MicroK8s CNI # noqa no-handler
   ansible.builtin.shell: |
-    microk8s kubectl delete -f /var/snap/microk8s/current/args/cni-network/cni.yaml
+    microk8s kubectl delete -f {{ jpclipffel_k8s_microk8s_root }}/args/cni-network/cni-default.yaml
   when:
     - __cni.changed
   failed_when: false
@@ -88,16 +145,32 @@
 
 - name: Setup MicroK8s CIDR
   ansible.builtin.replace:
-    path: "/var/snap/microk8s/current/args/kube-proxy"
+    path: "{{ jpclipffel_k8s_microk8s_root }}/args/kube-proxy"
     regexp: "--cluster-cidr=.*"
     replace: "--cluster-cidr={{ jpclipffel_k8s_microk8s_cidr }}"
   register: __cidr
   tags: [never, setup]
 
 
+- name: Restart MicroK8s # noqa no-handler
+  ansible.builtin.shell: |
+    microk8s stop;
+    microk8s start;
+    microk8s status --wait-ready
+  register: _rmk8s
+  until: "_rmk8s is not failed"
+  retries: 5
+  delay: 5
+  throttle: 1
+  when:
+    - __dns.changed or __cni.changed or __cidr.changed or 'restart' in ansible_run_tags
+  changed_when: true
+  tags: [never, setup]
+
+
 - name: Apply MicroK8s CNI # noqa no-handler
   ansible.builtin.shell: |
-    microk8s kubectl apply -f /var/snap/microk8s/current/args/cni-network/cni.yaml
+    microk8s kubectl apply -f {{ jpclipffel_k8s_microk8s_root }}/args/cni-network/cni.yaml
   register: _amc
   until: "_amc is not failed"
   retries: 5
@@ -108,13 +181,33 @@
   tags: [never, setup]
 
 
-- name: Restart MicroK8s # noqa no-handler
-  ansible.builtin.shell: |
-    microk8s stop;
-    microk8s start
+# ==========
+# Clustering
+# ==========
+
+- name: Generate joining command # noqa risky-shell-pipe
+  ansible.builtin.shell: >
+    microk8s add-node --token-ttl 3600 --format short
+    | head -n 1
+  register: "__join_command"
   when:
-    - __dns.changed or __cni.changed or __cidr.changed or 'restart' in ansible_run_tags
-  changed_when: true
+    - ansible_play_hosts | length > 0
+    - ansible_hostname == ansible_play_hosts[0]
+  tags: [never, setup]
+
+
+- name: Join cluster
+  ansible.builtin.shell: |
+    {{ hostvars[ansible_play_hosts[0]].__join_command.stdout }}
+  # ansible.builtin.shell: |
+  #   sleep 5
+  register: "__join_result"
+  failed_when:
+    - __join_result.rc != 0 and "is already known" not in __join_result.stdout
+  throttle: 1
+  when:
+    - ansible_play_hosts | length > 0
+    - ansible_hostname != ansible_play_hosts[0]
   tags: [never, setup]
 
 
@@ -129,6 +222,8 @@
   loop_control:
     loop_var: __dmk8sa_item
   changed_when: true
+  when:
+    - ansible_hostname == ansible_play_hosts[0]
   tags: [never, apply]
 
 
@@ -139,7 +234,16 @@
   loop_control:
     loop_var: __dmk8sa_item
   changed_when: true
+  when:
+    - ansible_hostname == ansible_play_hosts[0]
   tags: [never, delete]
+
+
+- name: Update node-local Kubeconfig # noqa deprecated-command-syntax
+  ansible.builtin.shell: |
+    mkdir ~/.kube; microk8s config > ~/.kube/config
+  changed_when: true
+  tags: [never, setup]
 
 
 # ==============
@@ -151,12 +255,16 @@
     microk8s config
   changed_when: false
   register: "__kubeconfig"
+  when:
+    - ansible_hostname == ansible_play_hosts[0]
   tags: [never, facts, stats, setup, apply]
 
 
 - name: Set facts
   ansible.builtin.set_fact:
     kubeconfig: "{{ __kubeconfig.stdout }}"
+  when:
+    - ansible_hostname == ansible_play_hosts[0]
   tags: [never, facts, stats, setup, apply]
 
 
@@ -164,6 +272,8 @@
   ansible.builtin.set_stats:
     data:
       kubeconfig: "{{ __kubeconfig.stdout }}"
+  when:
+    - ansible_hostname == ansible_play_hosts[0]
   tags: [never, facts, stats, setup, apply]
 
 
