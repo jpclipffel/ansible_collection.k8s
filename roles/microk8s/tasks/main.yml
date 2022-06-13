@@ -95,6 +95,13 @@
   tags: [never, setup]
 
 
+- name: Start MicroK8s # noqa command-instead-of-shell
+  ansible.builtin.shell:
+    microk8s start
+  changed_when: false
+  tags: [never, setup]
+
+
 - name: Wait for MicroK8s to be ready # noqa command-instead-of-shell
   ansible.builtin.shell:
     microk8s status --wait-ready
@@ -217,7 +224,7 @@
 
 - name: Enabling MicroK8s addons
   ansible.builtin.shell: |
-    microk8s enable {{ __dmk8sa_item }}
+    microk8s enable {{ __dmk8sa_item }} && sleep {{ jpclipffel_k8s_microk8s_addons_wait }}
   loop: "{{ jpclipffel_k8s_microk8s_addons }}"
   loop_control:
     loop_var: __dmk8sa_item

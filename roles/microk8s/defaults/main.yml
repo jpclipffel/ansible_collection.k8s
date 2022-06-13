@@ -21,6 +21,9 @@ jpclipffel_k8s_microk8s_addons:
   - "dns"
   - "rbac"
 
+# Addons enablement wait time in seconds
+jpclipffel_k8s_microk8s_addons_wait: 30
+
 # MicroK8s additional DNS names
 # 'jpclipffel_k8s_microk8s_dnsnames' is a list of map as:
 #
