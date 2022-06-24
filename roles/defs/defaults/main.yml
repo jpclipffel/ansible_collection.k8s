@@ -1,0 +1,11 @@
+# vim: set ft=Ansible ts=4
+
+
+# List of K8S definitions
+# - name: ""                    # String; required; Definition name
+#   namespace: ""               # String; optional; Definition namespace
+#   templates:                  # List; optional; List of definition files or template
+#     - "files/foo.yaml"
+#     - "templates/bar.yaml.j2"
+#   protected: false            # Protected flag (no not delete unless delete-protected in tags)
+jpclipffel_k8s_defs_list: []

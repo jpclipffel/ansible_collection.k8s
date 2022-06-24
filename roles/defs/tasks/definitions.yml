@@ -1,0 +1,53 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Create definitions temporary directory
+  ansible.builtin.tempfile:
+    state: directory
+  changed_when: false
+  register: "__tempdir"
+  tags: [never, apply, delete]
+
+
+- name: "Template definitions for {{ defn.name }}"
+  ansible.builtin.template:
+    src: "{{ __file }}"
+    dest: "{{ __tempdir.path }}/{{ __file | basename }}"
+    mode: 0644
+  changed_when: false
+  loop: "{{ defn.templates }}"
+  loop_control:
+    loop_var: "__file"
+  tags: [never, apply, delete]
+
+
+- name: "Apply definitions for {{ defn.name }}"
+  kubernetes.core.k8s:
+    src: "{{ __tempdir.path }}/{{ __file | basename }}"
+    namespace: "{{ defn.namespace | default(omit) }}"
+    state: present
+  loop: "{{ defn.templates }}"
+  loop_control:
+    loop_var: "__file"
+  tags: [never, apply]
+
+
+- name: "Delete definitions for {{ defn.name }}"
+  kubernetes.core.k8s:
+    src: "{{ __tempdir.path }}/{{ __file | basename }}"
+    namespace: "{{ defn.namespace | default(omit) }}"
+    state: absent
+  loop: "{{ defn.templates | reverse }}"
+  loop_control:
+    loop_var: "__file"
+  when:
+    - defn.protected | default(false) is false or 'delete-protected' in ansible_run_tags
+  tags: [never, delete]
+
+
+- name: Cleanup
+  ansible.builtin.file:
+    path: "{{ __tempdir.path }}"
+    state: absent
+  changed_when: false
+  tags: [never, apply, delete]

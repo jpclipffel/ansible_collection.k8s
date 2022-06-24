@@ -1,0 +1,21 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Primary master node assertion
+  ansible.builtin.assert:
+    that:
+      - jpclipffel_k8s_k8x_primary_master_node | default('') | length > 0
+    fail_msg: "No primary master node selected (jpclipffel_k8s_k8x_primary_master_node)"
+    quiet: true
+  tags: [never, apply, delete]
+
+
+- name: Process definitions set
+  ansible.builtin.include_tasks:
+    file: definitions.yml
+  loop: "{{ jpclipffel_k8s_defs_list }}"
+  loop_control:
+    loop_var: "defn"
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, apply, delete]
