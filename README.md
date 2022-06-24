@@ -34,14 +34,18 @@ all:
     k8s:
       vars:
         # Optional: K8S cluster configuration variables
-        # jpclipffel_k8s_k8s_*: ...
+        # jpclipffel_k8s_k8x_*: ...
       children:
         k8s_masters:
+          vars:
+            jpclipffel_k8s_k8x_node_type: master
           hosts:
             master-01.tld:
             master-02.tld:
             # ...
         k8s_workers:
+          vars:
+            jpclipffel_k8s_k8x_node_type: worker
           hosts:
             worker-01.tld:
             worker-02.tld:
@@ -53,8 +57,7 @@ Clusters setup is done using the following roles and collections:
 | Resource           | Variables name format       | Documentation / link             |
 |--------------------|-----------------------------|----------------------------------|
 | `microk8s` cluster | `jpclipffel_k8s_microk8s_*` | [Link](roles/microk8s/README.md) |
-| `vanilla` cluster  | `jpclipffel_k8s_k8s_*`      | [Link](roles/k8s/README.md)      |
-| CRI                | `jpclipffel_container_*`    | [Link][jpclipffel.container]     |
+| `vanilla` cluster  | `jpclipffel_k8s_k8x_*`      | [Link](roles/k8x/README.md)      |
 
 ### Playbook setup
 
@@ -76,8 +79,7 @@ Create an Ansible playbook:
 - hosts: k8s
   roles:
     - jpclipffel.container.containerd   # Setup the Containerd CRI
-    - jpclipffel.k8s.k8s                # Setup the K8S cluster
-    - jpclipffel.k8s.calico             # Setup the cluster CNI
+    - jpclipffel.k8s.k8x                # Setup the K8S cluster
 ```
 
 ### Deploy
@@ -102,18 +104,10 @@ ansible-playbook -i <your-inventory> <your-playbook.yml> --tags 'tag,tag,...'
 * Deploys and maintains a MicroK8s node
 * See [the role documentation](roles/microk8s/README.md)
 
-### `k8s`
+### `k8x`
 
 * Deploys and maintains a vanilla K8S cluster
 * See [the role documentation](roles/k8s/README.md)
-
-### `metallb`
-
-* Deploys and maintains MetalLB on a K8S cluster
-
-### `calico`
-
-* Deploys and maintains the Calico CNI on a K8S cluster
 
 ---
 
