@@ -1,0 +1,73 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Install Helm
+  ansible.builtin.script: "files/get-helm-3.sh"
+  tags: [never, apply]
+
+
+- name: Add Helm repositories
+  kubernetes.core.helm_repository:
+    binary_path: "{{ __repo.helm | default(omit) }}"
+    repo_name: "{{ __repo.name }}"
+    repo_state: present
+    repo_url: "{{ __repo.url }}"
+  loop: "{{ jpclipffel_k8s_helm_repos }}"
+  loop_control:
+    loop_var: "__repo"
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, apply]
+
+
+- name: Intall Helm Chart
+  kubernetes.core.helm:
+    atomic: "{{ __chart.atomic | default(true) }}"
+    binary_path: "{{ __chart.helm | default(omit) }}"
+    chart_ref: "{{ __chart.ref }}"
+    chart_repo_url: "{{ __chart.repo_url | default(omit) }}"
+    chart_version: "{{ __chart.version | default(omit) }}"
+    create_namespace: "{{ __chart.create_ns | default(true) }}"
+    force: "{{ __chart.force | default(false) }}"
+    release_name: "{{ __chart.name }}"
+    release_namespace: "{{ __chart.namespace }}"
+    release_state: present
+    release_values: "{{ __chart['values'] | default({}) }}"
+    values_files: "{{ __chart.values_files | default([]) }}"
+    wait: "{{ __chart.wait | default(false) }}"
+  loop: "{{ jpclipffel_k8s_helm_charts }}"
+  loop_control:
+    loop_var: "__chart"
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, apply]
+
+
+# ---
+
+
+- name: Uninstall Helm Chart
+  kubernetes.core.helm:
+    binary_path: "{{ __chart.helm | default(omit) }}"
+    release_name: "{{ __chart.name }}"
+    release_namespace: "{{ __chart.namespace }}"
+    release_state: absent
+  loop: "{{ jpclipffel_k8s_helm_charts }}"
+  loop_control:
+    loop_var: "__chart"
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, delete]
+
+
+- name: Remove Helm repositories
+  kubernetes.core.helm_repository:
+    binary_path: "{{ __repo.binary_path | default(omit) }}"
+    repo_name: "{{ __repo.name }}"
+    repo_state: absent
+  loop: "{{ jpclipffel_k8s_helm_repos }}"
+  loop_control:
+    loop_var: "__repo"
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, delete]

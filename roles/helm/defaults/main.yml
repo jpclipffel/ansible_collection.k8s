@@ -1,0 +1,24 @@
+# vim: set ft=Ansible ts=2
+
+
+# Helm installer script URL
+jpclipffel_k8s_helm_url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+
+
+# Helm repositories
+# Reference: https://docs.ansible.com/ansible/latest/collections/kubernetes/core/helm_repository_module.html
+# List of Helm repositories as:
+# - name: ""      # String; required; repository name
+#   url: ""       # String; optional; repository URL
+#   helm: ""      # String; optional; path to Helm binary
+jpclipffel_k8s_helm_repos: []
+
+
+# Helm Charts
+# Reference: https://docs.ansible.com/ansible/latest/collections/kubernetes/core/helm_module.html
+# List of Helm Charts as:
+# - name: ""        # String; required; relase name
+#   ref: ""         # String; required; Chart reference
+#   namespace: ""   # String; required; namespace
+#   values: {}      # Mapping; optional; Chart values
+jpclipffel_k8s_helm_charts: []
