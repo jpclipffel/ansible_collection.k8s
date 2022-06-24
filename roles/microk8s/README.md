@@ -2,7 +2,7 @@
 
 # Ansible Role - jpclipffel.k8s.microk8s
 
-Deploys and maintains a MicroK8s node.
+Deploys and maintains a MicroK8s cluster.
 
 ## 5 minutes how-to
 

@@ -1,3 +1,0 @@
-galaxy_info:
-  role_name: jpclipffel.k8s.k8s
-  description: Ansible role to deploy, scale and manage a Kubernetes cluster.
