@@ -1,0 +1,259 @@
+# vim: set ft=Ansible ts=2
+
+
+# ---
+# Assert variables and gather facts
+
+
+- name: Node type assertion
+  ansible.builtin.assert:
+    that:
+      - jpclipffel_k8s_k8x_node_type in ['master', 'worker']
+    fail_msg: "Node is neither master nor worker (jpclipffel_k8s_k8x_primary_master_node)"
+    quiet: true
+  tags: [never, setup, teardown, remove]
+
+
+- name: Primary master node assertion
+  ansible.builtin.assert:
+    that:
+      - jpclipffel_k8s_k8x_primary_master_node | default('') | length > 0
+    fail_msg: "No primary master node selected (jpclipffel_k8s_k8x_primary_master_node)"
+    quiet: true
+  tags: [never, setup, teardown, remove]
+
+
+- name: Cluster endpoint assertion
+  ansible.builtin.assert:
+    that:
+      - jpclipffel_k8s_k8x_control_plane_endpoint | default('') | length > 0
+    fail_msg: "No control plane endpoint selected (jpclipffel_k8s_k8x_control_plane_endpoint)"
+    quiet: true
+  tags: [never, setup, teardown, remove]
+
+
+- name: Gather cluster facts
+  ansible.builtin.include_tasks:
+    file: facts.yml
+  tags: [never, setup, teardown, remove]
+
+
+# ---
+# Prepare host system
+
+
+- name: Configure ansible_hostname resolution
+  ansible.builtin.lineinfile:
+    path: "/etc/hosts"
+    regexp: '{{ hostvars[__host].ansible_default_ipv4.address }}\s+{{ hostvars[__host].ansible_hostname }}'
+    line: '{{ hostvars[__host].ansible_default_ipv4.address }} {{ hostvars[__host].ansible_hostname }}'
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: __host
+  tags: [never, setup]
+
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ jpclipffel_k8s_k8x_kernel_modules }}"
+  tags: [never, setup]
+
+
+- name: Add kernel modules to modules-load.d
+  ansible.builtin.template:
+    src: "templates/modules_kubernetes.conf.j2"
+    dest: "/etc/modules-load.d/kubernetes.conf"
+    mode: 0644
+  tags: [never, setup]
+
+
+- name: Setup host OS (/proc/sys/)
+  ansible.builtin.shell: |
+    echo {{ __procsys.value }} > {{ __procsys.path }}
+  changed_when: true
+  loop: "{{ jpclipffel_k8s_k8x_procsys }}"
+  loop_control:
+    loop_var: __procsys
+  tags: [never, setup]
+
+
+- name: Setup host OS (sysctl)
+  ansible.builtin.template:
+    src: "{{ __sysctl.src }}"
+    dest: "{{ __sysctl.dest }}"
+    mode: 0644
+  loop: "{{ jpclipffel_k8s_k8x_sysctl }}"
+  loop_control:
+    loop_var: __sysctl
+  tags: [never, setup]
+
+
+- name: Create K8S directories
+  ansible.builtin.file:
+    path: "{{ __setup_dir }}"
+    state: directory
+    mode: 0750
+  loop: "{{ jpclipffel_k8s_k8x_directories }}"
+  loop_control:
+    loop_var: __setup_dir
+  tags: [never, setup]
+
+
+- name: Install OS packages
+  include_tasks:
+    file: "install_{{ ansible_distribution | lower }}.yml"
+  tags: [never, setup]
+
+
+- name: Install Python packages
+  ansible.builtin.pip:
+    name: "{{ jpclipffel_k8s_k8x_python_deps }}"
+    state: present
+  tags: [never, setup]
+
+
+- name: Enable and start kubelet
+  ansible.builtin.service:
+    name: kubelet
+    state: started
+    enabled: true
+  tags: [never, setup]
+
+
+# ---
+# Bootstrap  (initialize) cluster
+
+
+- name: Bootstrap cluster
+  ansible.builtin.shell: >
+    kubeadm init
+    --apiserver-advertise-address={{ jpclipffel_k8s_k8x_apiserver_advertise_address }}
+    --apiserver-bind-port={{ jpclipffel_k8s_k8x_apiserver_bind_port }}
+    --pod-network-cidr={{ jpclipffel_k8s_k8x_pod_network_cidr }}
+    --service-cidr={{ jpclipffel_k8s_k8x_service_cidr }}
+    --control-plane-endpoint={{ jpclipffel_k8s_k8x_control_plane_endpoint }}
+    --apiserver-cert-extra-sans="{{ jpclipffel_k8s_k8x_sans | join(',') }}"
+    --upload-certs
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+    - not jpclipffel_k8s_k8x_cluster_running
+  tags: [never, setup]
+
+
+- name: Refresh local kubeconfig
+  ansible.builtin.copy:
+    remote_src: true
+    src: "/etc/kubernetes/admin.conf"
+    dest: "~/.kube/config"
+    mode: 0644
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, setup]
+
+
+# ---
+# Join nodes to cluster
+
+
+- name: Generate temporary certificate key
+  ansible.builtin.shell: |
+    kubeadm certs certificate-key
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  changed_when: false
+  register: __cert_key
+  tags: [never, setup]
+
+
+- name: Upload cluster certificates
+  ansible.builtin.shell: >
+    kubeadm init phase upload-certs
+    --upload-certs
+    --certificate-key {{ __cert_key.stdout }}
+  changed_when: false
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, setup]
+
+
+- name: Generate cluster token
+  ansible.builtin.shell: >
+    kubeadm token create
+    --print-join-command
+    --ttl "{{ jpclipffel_k8s_k8x_token_ttl }}"
+  changed_when: false
+  register: __join_command
+  when:
+    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  tags: [never, setup]
+
+
+- name: Join master node to cluster
+  ansible.builtin.shell: >
+    {{ hostvars[jpclipffel_k8s_k8x_primary_master_node].__join_command.stdout  }}
+    --control-plane
+    --certificate-key {{ hostvars[jpclipffel_k8s_k8x_primary_master_node].__cert_key.stdout }}
+  changed_when: true
+  when:
+    - inventory_hostname != jpclipffel_k8s_k8x_primary_master_node
+    - jpclipffel_k8s_k8x_node_type == "master"
+    - not jpclipffel_k8s_k8x_cluster_running
+    - not jpclipffel_k8s_k8x_kubelet_healthy
+  tags: [never, setup]
+
+
+- name: Allow scheduling on master nodes
+  ansible.builtin.shell: >
+    kubectl taint nodes {{ __host }} node-role.kubernetes.io/master:NoSchedule-
+  when:
+    - hostvars[__host].jpclipffel_k8s_k8x_node_type | default('') == "master"
+    - not jpclipffel_k8s_k8x_master_noschedule
+  failed_when: false
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: __host
+  delegate_to: "{{ jpclipffel_k8s_k8x_primary_master_node }}"
+  tags: [never, setup]
+
+
+- name: Join worker node to cluster
+  ansible.builtin.shell: |
+    {{ hostvars[jpclipffel_k8s_k8x_primary_master_node].__join_command.stdout  }}
+  changed_when: true
+  when:
+    - jpclipffel_k8s_k8x_node_type == "worker"
+    - not jpclipffel_k8s_k8x_kubelet_healthy
+  tags: [never, setup]
+
+
+# ---
+# Stop, disable and reset Kubernetes
+
+
+- name: Stop and disable kubelet
+  ansible.builtin.service:
+    name: kubelet
+    state: stopped
+    enabled: false
+  failed_when: false
+  tags: [never, teardown, remove]
+
+
+- name: Reset node
+  ansible.builtin.shell: |
+    kubeadm reset -f
+  changed_when: true
+  failed_when: false
+  tags: [never, teardown, remove]
+
+
+- name: Remove K8S directories
+  ansible.builtin.file:
+    path: "{{ __teardown_dir }}"
+    state: absent
+  loop: "{{ jpclipffel_k8s_k8x_directories }}"
+  loop_control:
+    loop_var: __teardown_dir
+  tags: [never, teardown, remove]

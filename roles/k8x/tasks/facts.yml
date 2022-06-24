@@ -1,0 +1,49 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Gather services status
+  ansible.builtin.service_facts:
+  tags: [always]
+
+
+- name: Gather kubelet health
+  ansible.builtin.uri:
+    url: "http://localhost:10248/healthz"
+    return_content: true
+    timeout: 2
+  failed_when: false
+  register: __healtz
+  tags: [always]
+
+
+- name: Gather cluster info
+  ansible.builtin.shell: >
+    kubectl cluster-info
+  environment:
+    KUBECONFIG: "/etc/kubernetes/admin.conf"
+  failed_when: false
+  changed_when: false
+  register: __cinfo
+  when:
+    - jpclipffel_k8s_k8x_node_type == "master"
+  tags: [always]
+
+
+- name: Set node service status
+  ansible.builtin.set_fact:
+    jpclipffel_k8s_k8x_kubelet_running: "{{ ansible_facts.services['kubelet.service'].state | default ('unknown') == 'running' }}"
+  tags: [always]
+
+
+- name: Set kubelet health
+  ansible.builtin.set_fact:
+    jpclipffel_k8s_k8x_kubelet_healthy: "{{ __healtz.content | default('-') == 'ok' }}"
+  tags: [always]
+
+
+- name: Set cluster status
+  ansible.builtin.set_fact:
+    jpclipffel_k8s_k8x_cluster_running: "{{ __cinfo.rc == 0 }}"
+  when:
+    - jpclipffel_k8s_k8x_node_type == "master"
+  tags: [always]

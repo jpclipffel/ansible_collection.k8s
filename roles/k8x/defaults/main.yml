@@ -1,0 +1,59 @@
+# vim: set ft=Ansible ts=2
+
+
+# List of required kernel modules
+jpclipffel_k8s_k8x_kernel_modules:
+  - br_netfilter
+  - overlay
+
+
+# /proc/sys/ configuration paths and values
+jpclipffel_k8s_k8x_procsys:
+  - path: "/proc/sys/net/bridge/bridge-nf-call-iptables"
+    value: 1
+  - path: "/proc/sys/net/ipv4/ip_forward"
+    value: 1
+
+
+# Sysctl configuration path
+jpclipffel_k8s_k8x_sysctl:
+  - dest: "/etc/sysctl.d/kubernetes.conf"
+    src: "templates/sysctl_kubernetes.conf.j2"
+
+
+# Python dependencies
+jpclipffel_k8s_k8x_python_deps:
+  - "kubernetes"
+  - "PyYaml"
+  - "jsonpatch"
+
+
+# K8S version
+jpclipffel_k8s_k8x_version: "1.23.7-00"
+
+
+# Kubeadm configuration
+jpclipffel_k8s_k8x_apiserver_advertise_address: "0.0.0.0"
+jpclipffel_k8s_k8x_apiserver_bind_port: "6443"
+jpclipffel_k8s_k8x_pod_network_cidr: "10.16.0.0/16"
+jpclipffel_k8s_k8x_service_cidr: "10.17.0.0/16"
+# jpclipffel_k8s_k8x_control_plane_endpoint: "{{ ansible_hostname }}"
+
+
+# Directories to create and purge during cluster setup and teardown
+jpclipffel_k8s_k8x_directories:
+  - /etc/kubernetes
+  - /var/lib/kubelet
+  - /etc/cni
+
+
+# Cluster token TTL
+jpclipffel_k8s_k8x_token_ttl: "30m"
+
+
+# Cluster certificate extra SANs
+jpclipffel_k8s_k8x_sans: []
+
+
+# Disallow pod scheduling on master nodes
+jpclipffel_k8s_k8x_master_noschedule: true

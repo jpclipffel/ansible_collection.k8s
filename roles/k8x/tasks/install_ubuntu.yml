@@ -1,0 +1,45 @@
+# vim: set ft=Ansible ts=2
+
+
+- name: Add Kubernetes repository key
+  ansible.builtin.apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+  tags: [never, setup]
+
+
+- name: Add Kubernetes repository
+  ansible.builtin.apt_repository:
+    repo: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+    state: present
+  tags: [never, setup]
+
+
+- name: Install Kubernetes
+  ansible.builtin.package:
+    name: "{{ __packages }}"
+    state: present
+  vars:
+    __packages:
+      - "kubeadm={{ jpclipffel_k8s_k8x_version }}"
+      - "kubectl={{ jpclipffel_k8s_k8x_version }}"
+      - "kubelet={{ jpclipffel_k8s_k8x_version }}"
+      - "kubernetes-cni"
+      - "python3-pip"
+  tags: [never, setup]
+
+
+# ---
+
+
+- name: Uninstall Kubernetes
+  ansible.builtin.package:
+    name: "{{ __packages }}"
+    state: absent
+  vars:
+    __packages:
+      - "kubeadm"
+      - "kubectl"
+      - "kubelet"
+      - "kubernetes-cni"
+  tags: [never, remove]
