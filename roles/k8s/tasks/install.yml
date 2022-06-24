@@ -5,40 +5,48 @@
   include_tasks:
     file: "install_{{ ansible_distribution|lower }}.yml"
 
+
 - name: Load required kernel modules
   community.general.modprobe:
     name: "{{ item }}"
     state: present
-  loop: [br_netfilter, ]
+  loop:
+    - br_netfilter
+    - overlay
+
 
 - name: Setup system network
-  shell: |
+  ansible.builtin.shell: |
     echo 1 > {{ item }}
   changed_when: true
   loop:
     - "/proc/sys/net/bridge/bridge-nf-call-iptables"
     - "/proc/sys/net/ipv4/ip_forward"
 
+
 - name: Install Kubernetes
-  package:
+  ansible.builtin.package:
     name: "{{ jpclipffel_k8s_k8s_packages }}"
     state: present
 
+
 - name: Start kubelet
-  service:
+  ansible.builtin.service:
     name: kubelet
     state: started
-    enabled: yes
+    enabled: true
+
 
 - name: Install Python PIP
-  package:
+  ansible.builtin.package:
     name: python3-pip
     state: present
   when:
     - jpclipffel_k8s_k8s_node_type == "master"
 
+
 - name: Install Kubernetes Python dependencies for Ansible
-  pip:
+  ansible.builtin.pip:
     name:
       - PyYAML
       - openshift

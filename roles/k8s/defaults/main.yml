@@ -2,7 +2,7 @@
 
 
 # Kubernetes packages
-jpclipffel_k8s_k8s_version: "1.23.4-00"
+jpclipffel_k8s_k8s_version: "1.23.7-00"
 jpclipffel_k8s_k8s_packages:
   - "kubeadm={{ jpclipffel_k8s_k8s_version }}"
   - "kubectl={{ jpclipffel_k8s_k8s_version }}"
@@ -13,21 +13,26 @@ jpclipffel_k8s_k8s_packages:
 # - "" (empty string) : Default
 # - "kcm"             : Force Kube Control Manager images
 # - "hyperkube"       : Force Google's Hyperkube images
-jpclipffel_k8s_k8s_flavor: "" # "kcm" || 'hyperkube'
-jpclipffel_k8s_k8s_flavor_kcm_url: 'k8s.gcr.io/kube-controller-manager'
-jpclipffel_k8s_k8s_flavor_hyperkube_url: 'gcr.io/google_containers/hyperkube'
+# jpclipffel_k8s_k8s_flavor: "" # "kcm" || 'hyperkube'
+# jpclipffel_k8s_k8s_flavor_kcm_url: 'k8s.gcr.io/kube-controller-manager'
+# jpclipffel_k8s_k8s_flavor_hyperkube_url: 'gcr.io/google_containers/hyperkube'
 
 # Healthchek URL
 jpclipffel_k8s_k8s_health_url: "http://localhost:10248/healthz"
 
 # kubeconfig
 jpclipffel_k8s_k8s_kubeconfig_default: /etc/kubernetes/admin.conf
-jpclipffel_k8s_k8s_kubeconfig: "{{ansible_env.HOME }}/.kube/config"
+jpclipffel_k8s_k8s_kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
 
 # kubeadm variables
 jpclipffel_k8s_k8s_apiserver_advertise_address: "0.0.0.0"
 jpclipffel_k8s_k8s_apiserver_bind_port: 6443
 jpclipffel_k8s_k8s_control_plane_endpoint: ""
-jpclipffel_k8s_k8s_pod_network_cidr: "10.128.0.0/14"
-jpclipffel_k8s_k8s_service_cidr: "10.54.0.0/16"
+
+# jpclipffel_k8s_k8s_pod_network_cidr: "10.128.0.0/14"
+# jpclipffel_k8s_k8s_service_cidr: "10.54.0.0/16"
+
+jpclipffel_k8s_k8s_pod_network_cidr: "10.16.0.0/16"
+jpclipffel_k8s_k8s_service_cidr: "10.17.0.0/16"
+
 jpclipffel_k8s_k8s_token_ttl: 15m

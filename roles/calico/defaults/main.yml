@@ -1,2 +1,8 @@
+# vim: set fs=Ansible ts=2
+
 jpclipffel_k8s_calico_netmgr_path: /etc/NetworkManager
-jpclipffel_k8s_calico_manifest_url: "https://docs.projectcalico.org/manifests/calico.yaml"
+
+
+# jpclipffel_k8s_calico_manifest_url: "https://docs.projectcalico.org/manifests/calico.yaml"
+# jpclipffel_k8s_calico_manifest_url: "https://projectcalico.docs.tigera.io/manifests/calico.yaml"
+jpclipffel_k8s_calico_manifest_url: "https://projectcalico.docs.tigera.io/manifests/calico-etcd.yaml"

@@ -36,11 +36,25 @@
 
 # Facts collection
 #
-# Collect custom facts 
+# Collect custom facts
 - name: Preflight facts collection
   ansible.builtin.include_tasks:
     file: facts.yml
     apply: { tags: [setup] }
+  tags: [never, setup]
+
+
+# Host resolution
+#
+# Ensure the cluster nodes can resolve each other.
+- name: Configure ansible_hostname resolution
+  ansible.builtin.lineinfile:
+    path: "/etc/hosts"
+    regexp: '{{ hostvars[__host].ansible_default_ipv4.address }}\s+{{ hostvars[__host].ansible_hostname }}'
+    line: '{{ hostvars[__host].ansible_default_ipv4.address }} {{ hostvars[__host].ansible_hostname }}'
+  loop: "{{ ansible_play_hosts }}"
+  loop_control:
+    loop_var: __host
   tags: [never, setup]
 
 
@@ -71,7 +85,7 @@
 
 - name: Copy kubeconfig
   ansible.builtin.copy:
-    remote_src: yes
+    remote_src: true
     src: "{{ jpclipffel_k8s_k8s_kubeconfig_default }}"
     dest: "{{ jpclipffel_k8s_k8s_kubeconfig }}"
     mode: 0644
@@ -123,5 +137,5 @@
 - name: Scanning inventory
   ansible.builtin.include_tasks:
     file: inventory_helper.yml
-    apply: { tags: [apply] }
-  tags: [never, apply]
+    apply: { tags: [apply, delete] }
+  tags: [never, apply, delete]

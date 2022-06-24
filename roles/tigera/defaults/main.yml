@@ -1,0 +1,16 @@
+# vim: set ft=Ansible ts=2
+
+# Tigera version
+jpclipffel_k8s_tigera_version: "3.23"
+
+# Tigera operator resources
+jpclipffel_k8s_tigera_operator_manifest: "files/tigera-operator-{{ jpclipffel_k8s_tigera_version }}.yaml"
+
+# Tigera custom resources
+jpclipffel_k8s_tigera_resources_manifest: "templates/custom-resources-{{ jpclipffel_k8s_tigera_version }}.yaml.j2"
+
+# Pods CIDR
+jpclipffel_k8s_tigera_cidr: "{{ jpclipffel_k8s_k8x_pod_network_cidr }}"
+
+# Enable Calico API server
+jpclipffel_k8s_tigera_apiserver: false

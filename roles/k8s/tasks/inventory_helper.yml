@@ -8,7 +8,7 @@
 
 
 - name: Resolve masters group from node type
-  add_host:
+  ansible.builtin.add_host:
     hostname: "{{ item }}"
     groups: "k8s_masters"
   when:
@@ -18,7 +18,7 @@
 
 
 - name: Resolve workers group from node type
-  add_host:
+  ansible.builtin.add_host:
     hostname: "{{ item }}"
     groups: "k8s_workers"
   when:
@@ -28,7 +28,7 @@
 
 
 - name: Resolve deleted group from node type
-  add_host:
+  ansible.builtin.add_host:
     hostname: "{{ item }}"
     groups: "deleted"
   when:
@@ -38,7 +38,7 @@
 
 
 - name: Resolve node type from host group
-  set_fact:
+  ansible.builtin.set_fact:
     jpclipffel_k8s_k8s_node_type: "{{ item.type }}"
   when:
     - jpclipffel_k8s_k8s_node_type is not defined
@@ -53,11 +53,11 @@
 
 
 - name: Select primary master node
-  set_fact:
+  ansible.builtin.set_fact:
     jpclipffel_k8s_k8s_primary_master_name: "{{ item }}"
     jpclipffel_k8s_k8s_primary_master_ip: "{{ hostvars[item].ansible_default_ipv4.address }}"
   delegate_to: localhost
-  run_once: yes
+  run_once: true
   when:
     - hostvars[item].jpclipffel_k8s_k8s_node_type | default('') == "master"
     - jpclipffel_k8s_k8s_primary_master_name is not defined or jpclipffel_k8s_k8s_primary_master_name | length < 1
