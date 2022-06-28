@@ -205,8 +205,9 @@
 
 
 - name: Allow scheduling on master nodes
-  ansible.builtin.shell: >
+  ansible.builtin.shell: |
     kubectl taint nodes {{ __host }} node-role.kubernetes.io/master:NoSchedule-
+    kubectl taint nodes {{ __host }} node-role.kubernetes.io/control-plane:-
   when:
     - hostvars[__host].jpclipffel_k8s_k8x_node_type | default('') == "master"
     - not jpclipffel_k8s_k8x_master_noschedule
@@ -244,6 +245,29 @@
 - name: Reset node
   ansible.builtin.shell: |
     kubeadm reset -f
+  changed_when: true
+  failed_when: false
+  tags: [never, teardown, remove]
+
+
+- name: Reset firewall rules
+  ansible.builtin.shell: |
+    {{ __fw_command }}
+  loop: "{{ jpclipffel_k8s_k8x_flush_fwrules }}"
+  loop_control:
+    loop_var: "__fw_command"
+  changed_when: true
+  failed_when: false
+  tags: [never, teardown, remove]
+
+
+- name: Remove virtual interfaces
+  ansible.builtin.shell: |
+    ip link set {{ __iface }} down
+    ip link delete {{ __iface }}
+  loop: "{{ jpclipffel_k8s_k8x_flush_ifaces }}"
+  loop_control:
+    loop_var: "__iface"
   changed_when: true
   failed_when: false
   tags: [never, teardown, remove]

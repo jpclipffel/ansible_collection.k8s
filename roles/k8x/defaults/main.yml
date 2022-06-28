@@ -9,16 +9,28 @@ jpclipffel_k8s_k8x_kernel_modules:
 
 # /proc/sys/ configuration paths and values
 jpclipffel_k8s_k8x_procsys:
-  - path: "/proc/sys/net/bridge/bridge-nf-call-iptables"
-    value: 1
   - path: "/proc/sys/net/ipv4/ip_forward"
     value: 1
-
+  - path: "/proc/sys/net/bridge/bridge-nf-call-iptables"
+    value: 1
 
 # Sysctl configuration path
 jpclipffel_k8s_k8x_sysctl:
   - dest: "/etc/sysctl.d/kubernetes.conf"
     src: "templates/sysctl_kubernetes.conf.j2"
+
+
+# Firewall rule flushing commands
+jpclipffel_k8s_k8x_flush_fwrules:
+  - "iptables -F"           # iptables - Flush rules
+  - "iptables -X"           # iptables - Remove non-default chains
+  - "nft flush ruleset"     # nftables - Flush all rules
+
+
+# Virtual interfaces flushing list
+jpclipffel_k8s_k8x_flush_ifaces:
+  - "cni0"                  # Default CNI interface
+  - "flannel.1"             # Default flannel interface
 
 
 # Python dependencies
@@ -29,7 +41,7 @@ jpclipffel_k8s_k8x_python_deps:
 
 
 # K8S version
-jpclipffel_k8s_k8x_version: "1.23.7-00"
+jpclipffel_k8s_k8x_version: "1.24.2-00"
 
 
 # Kubeadm configuration
