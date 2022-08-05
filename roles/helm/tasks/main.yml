@@ -20,7 +20,7 @@
   tags: [never, apply]
 
 
-- name: Intall Helm Chart
+- name: Install Helm Chart
   kubernetes.core.helm:
     atomic: "{{ __chart.atomic | default(true) }}"
     binary_path: "{{ __chart.helm | default(omit) }}"
