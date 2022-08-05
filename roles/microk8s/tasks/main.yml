@@ -34,35 +34,6 @@
   tags: [never, setup]
 
 
-# - name: Ensure host resolve itself
-#   block:
-
-#     - name: Get host hostname
-#       ansible.builtin.shell: >
-#         hostname
-#       changed_when: false
-#       register: __host_hostname
-
-#     - name: Setup host self-resolution
-#       ansible.builtin.lineinfile:
-#         path: "/etc/hosts"
-#         regexp: '{{  __host.address }}\s+{{ __host.name }}'
-#         line: "{{  __host.address }} {{ __host.name }}"
-#       loop:
-#         - address: "127.0.0.1"
-#           name: "{{ __host_hostname.stdout }}"
-#         - address: "127.0.0.1"
-#           name: "{{ ansible_hostname }}"
-#         - address: "{{ ansible_default_ipv4.address }}"
-#           name: "{{ __host_hostname.stdout }}"
-#         - address: "{{ ansible_default_ipv4.address }}"
-#           name: "{{ ansible_hostname }}"
-#       loop_control:
-#         loop_var: __host
-
-#   tags: [never, setup]
-
-
 # ============
 # Installation
 # ============
@@ -206,8 +177,6 @@
 - name: Join cluster
   ansible.builtin.shell: |
     {{ hostvars[ansible_play_hosts[0]].__join_command.stdout }}
-  # ansible.builtin.shell: |
-  #   sleep 5
   register: "__join_result"
   failed_when:
     - __join_result.rc != 0 and "is already known" not in __join_result.stdout
@@ -215,6 +184,7 @@
   when:
     - ansible_play_hosts | length > 0
     - ansible_hostname != ansible_play_hosts[0]
+    - __join_command.stdout is defined
   tags: [never, setup]
 
 
