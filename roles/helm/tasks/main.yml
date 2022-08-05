@@ -15,8 +15,8 @@
   loop: "{{ jpclipffel_k8s_helm_repos }}"
   loop_control:
     loop_var: "__repo"
-  when:
-    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  # when:
+  #   - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
   tags: [never, apply]
 
 
@@ -38,8 +38,8 @@
   loop: "{{ jpclipffel_k8s_helm_charts }}"
   loop_control:
     loop_var: "__chart"
-  when:
-    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  # when:
+  #   - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
   tags: [never, apply]
 
 
@@ -55,8 +55,8 @@
   loop: "{{ jpclipffel_k8s_helm_charts }}"
   loop_control:
     loop_var: "__chart"
-  when:
-    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  # when:
+  #   - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
   tags: [never, delete]
 
 
@@ -68,6 +68,6 @@
   loop: "{{ jpclipffel_k8s_helm_repos }}"
   loop_control:
     loop_var: "__repo"
-  when:
-    - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
+  # when:
+  #   - inventory_hostname == jpclipffel_k8s_k8x_primary_master_node
   tags: [never, delete]
