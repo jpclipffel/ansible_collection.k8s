@@ -54,9 +54,10 @@ jpclipffel_k8s_k8x_service_cidr: "10.17.0.0/16"
 
 # Directories to create and purge during cluster setup and teardown
 jpclipffel_k8s_k8x_directories:
-  - /etc/kubernetes
-  - /var/lib/kubelet
-  - /etc/cni
+  - "/etc/kubernetes"
+  - "/var/lib/kubelet"
+  - "/etc/cni"
+  - "~/.kube"
 
 
 # Cluster token TTL
