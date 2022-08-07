@@ -14,6 +14,7 @@ jpclipffel_k8s_k8x_procsys:
   - path: "/proc/sys/net/bridge/bridge-nf-call-iptables"
     value: 1
 
+
 # Sysctl configuration path
 jpclipffel_k8s_k8x_sysctl:
   - dest: "/etc/sysctl.d/kubernetes.conf"
