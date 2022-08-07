@@ -66,6 +66,13 @@
   tags: [never, setup]
 
 
+- name: Install Python packages
+  ansible.builtin.pip:
+    name: "{{ jpclipffel_k8s_microk8s_python_deps }}"
+    state: present
+  tags: [never, setup]
+
+
 - name: Start MicroK8s # noqa command-instead-of-shell
   ansible.builtin.shell:
     microk8s start

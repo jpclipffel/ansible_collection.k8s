@@ -4,25 +4,32 @@
 # MicroK8s installation channel track
 jpclipffel_k8s_microk8s_channel_track: "latest"
 
+
 # MicroK8s installation channel risk
 jpclipffel_k8s_microk8s_channel_risk: "stable"
+
 
 # MicroK8s installation channel
 jpclipffel_k8s_microk8s_channel: "{{ jpclipffel_k8s_microk8s_channel_track }}/{{ jpclipffel_k8s_microk8s_channel_risk }}"
 
+
 # MicroK8s installation path
 jpclipffel_k8s_microk8s_root: "/var/snap/microk8s/current"
 
+
 # MicroK8s CIDR
 jpclipffel_k8s_microk8s_cidr: "10.16.0.0/16"
+
 
 # MicroK8s addons
 jpclipffel_k8s_microk8s_addons:
   - "dns"
   - "rbac"
 
+
 # Addons enablement wait time in seconds
 jpclipffel_k8s_microk8s_addons_wait: 30
+
 
 # MicroK8s additional DNS names
 # 'jpclipffel_k8s_microk8s_dnsnames' is a list of map as:
@@ -31,6 +38,13 @@ jpclipffel_k8s_microk8s_addons_wait: 30
 #   - entry: "DNS.6"
 #     host: "<microk8s.tld>"
 #
-# Please note that the 'entry' starts at 'DNS.6' (.1 to .5 are set by default)
+# Note that the 'entry' starts at 'DNS.6' (.1 to .5 are set by default)
 jpclipffel_k8s_microk8s_dnsnames_path: "{{ jpclipffel_k8s_microk8s_root }}/certs/csr.conf.template"
 jpclipffel_k8s_microk8s_dnsnames: []
+
+
+# Python dependencies
+jpclipffel_k8s_microk8s_python_deps:
+  - "kubernetes"
+  - "PyYaml"
+  - "jsonpatch"
