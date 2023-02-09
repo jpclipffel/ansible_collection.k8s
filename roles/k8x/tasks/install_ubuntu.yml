@@ -24,8 +24,12 @@
       - "kubeadm={{ jpclipffel_k8s_k8x_version }}"
       - "kubectl={{ jpclipffel_k8s_k8x_version }}"
       - "kubelet={{ jpclipffel_k8s_k8x_version }}"
-      - "kubernetes-cni"
+      - "kubernetes-cni={{ jpclipffel_k8s_k8x_cni_version }}"
       - "python3-pip"
+  register: __instk8s
+  retries: 10
+  delay: 60
+  until: __instk8s is success
   tags: [never, setup]
 
 

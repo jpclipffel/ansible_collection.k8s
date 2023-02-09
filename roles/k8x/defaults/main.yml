@@ -45,6 +45,10 @@ jpclipffel_k8s_k8x_python_deps:
 jpclipffel_k8s_k8x_version: "1.24.2-00"
 
 
+# K8S CNI version
+jpclipffel_k8s_k8x_cni_version: "0.8.7-00"
+
+
 # Kubeadm configuration
 jpclipffel_k8s_k8x_apiserver_advertise_address: "0.0.0.0"
 jpclipffel_k8s_k8x_apiserver_bind_port: "6443"
